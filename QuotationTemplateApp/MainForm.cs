@@ -4,6 +4,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 
 namespace QuotationTemplateApp;
 
@@ -262,57 +263,151 @@ public class MainForm : Form
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Quotation");
 
-        ws.Cell("A1").Value = "QUOTATION";
-        ws.Cell("A2").Value = _txtCompany.Text;
-        ws.Cell("A3").Value = $"Customer: {_txtCustomer.Text}";
-        ws.Cell("D3").Value = $"Phone: {_txtPhone.Text}";
-        ws.Cell("A4").Value = $"Place of Supply: {_txtSupplyPlace.Text}";
-        ws.Cell("D4").Value = $"Quotation No: {_txtQuotationNo.Text}";
-        ws.Cell("F4").Value = $"Quotation Date: {_quoteDate.Value:dd MMM yyyy}";
-        ws.Cell("H4").Value = $"Validity: {_validityDate.Value:dd MMM yyyy}";
+        ws.Column("A").Width = 5;
+        ws.Column("B").Width = 12;
+        ws.Column("C").Width = 12;
+        ws.Column("D").Width = 9;
+        ws.Column("E").Width = 9;
+        ws.Column("F").Width = 7;
+        ws.Column("G").Width = 6;
+        ws.Column("H").Width = 9;
+        ws.Column("I").Width = 12;
 
-        var headers = new[] { "NO", "Item", "W", "H", "Qty", "Soft", "Rate", "Amount" };
-        for (var i = 0; i < headers.Length; i++)
+        ws.Range("A1:C1").Merge().Value = "QUOTATION";
+        ws.Cell("A1").Style.Font.SetBold().SetFontColor(XLColor.DarkBlue).SetUnderline(XLFontUnderlineValues.Single);
+
+        ws.Range("A2:F2").Merge().Value = _txtCompany.Text;
+        ws.Cell("A2").Style.Font.SetBold().SetFontSize(14);
+        ws.Range("A3:F3").Merge().Value = "GSTIN: 33CZGPR1438E1ZI";
+        ws.Range("A4:F4").Merge().Value = "63/1 Mahaveer Street, Chennai, Tamil Nadu - 600050";
+        ws.Range("A5:F5").Merge().Value = "Mobile: +91 90924 92393";
+        ws.Range("A6:F6").Merge().Value = "Email: rajadhurai1998@gmail.com";
+
+        TryInsertCompanyLogo(ws);
+
+        ws.Range("B8:C8").Merge().Value = "Quotation No:";
+        ws.Cell("D8").Value = _txtQuotationNo.Text;
+        ws.Range("E8:F8").Merge().Value = "Quotation Date:";
+        ws.Range("G8:H8").Merge().Value = _quoteDate.Value.ToString("dd MMM yyyy");
+        ws.Range("I8:I8").Value = $"Validity: {_validityDate.Value:dd MMM yyyy}";
+        ws.Range("I8:I8").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+        ws.Range("A10:B10").Merge().Value = "Customer Details:";
+        ws.Cell("A10").Style.Font.SetBold().SetUnderline(XLFontUnderlineValues.Single);
+        ws.Range("A11:D11").Merge().Value = $"M/S. {_txtCustomer.Text}";
+        ws.Range("A12:D12").Merge().Value = $"Phone: {_txtPhone.Text}";
+        ws.Range("A13:D13").Merge().Value = $"Place of Supply: {_txtSupplyPlace.Text}";
+        ws.Range("A13:D13").Style.Font.SetBold();
+
+        ws.Range("A15:A16").Merge().Value = "NO";
+        ws.Range("B15:C16").Merge().Value = "Item";
+        ws.Range("D15:E15").Merge().Value = "Actual Size (MM)";
+        ws.Cell("D16").Value = "W";
+        ws.Cell("E16").Value = "H";
+        ws.Range("F15:F16").Merge().Value = "Qty";
+        ws.Range("G15:G16").Merge().Value = "soft";
+        ws.Range("H15:H16").Merge().Value = "Rate";
+        ws.Range("I15:I16").Merge().Value = "Amount";
+
+        var tableHeader = ws.Range("A15:I16");
+        tableHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        tableHeader.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        tableHeader.Style.Font.Bold = true;
+
+        const int firstItemRow = 17;
+        const int templateItemCount = 18;
+
+        for (var i = 0; i < templateItemCount; i++)
         {
-            ws.Cell(6, i + 1).Value = headers[i];
-            ws.Cell(6, i + 1).Style.Font.Bold = true;
-            ws.Cell(6, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+            var excelRow = firstItemRow + i;
+            ws.Cell(excelRow, 1).Value = i + 1;
+            ws.Cell(excelRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            if (i < _itemsGrid.Rows.Count)
+            {
+                var row = _itemsGrid.Rows[i];
+                ws.Range(excelRow, 2, excelRow, 3).Merge().Value = row.Cells["Item"].Value?.ToString();
+                ws.Cell(excelRow, 4).Value = row.Cells["W"].Value?.ToString();
+                ws.Cell(excelRow, 5).Value = row.Cells["H"].Value?.ToString();
+                ws.Cell(excelRow, 6).Value = row.Cells["Qty"].Value?.ToString();
+                ws.Cell(excelRow, 7).Value = row.Cells["Soft"].Value?.ToString();
+                ws.Cell(excelRow, 8).Value = row.Cells["Rate"].Value?.ToString();
+                ws.Cell(excelRow, 9).Value = row.Cells["Amount"].Value?.ToString();
+            }
+            else
+            {
+                ws.Range(excelRow, 2, excelRow, 3).Merge();
+            }
         }
 
-        var rowPointer = 7;
-        foreach (DataGridViewRow row in _itemsGrid.Rows)
-        {
-            ws.Cell(rowPointer, 1).Value = row.Cells["No"].Value?.ToString();
-            ws.Cell(rowPointer, 2).Value = row.Cells["Item"].Value?.ToString();
-            ws.Cell(rowPointer, 3).Value = row.Cells["W"].Value?.ToString();
-            ws.Cell(rowPointer, 4).Value = row.Cells["H"].Value?.ToString();
-            ws.Cell(rowPointer, 5).Value = row.Cells["Qty"].Value?.ToString();
-            ws.Cell(rowPointer, 6).Value = row.Cells["Soft"].Value?.ToString();
-            ws.Cell(rowPointer, 7).Value = row.Cells["Rate"].Value?.ToString();
-            ws.Cell(rowPointer, 8).Value = row.Cells["Amount"].Value?.ToString();
-            rowPointer++;
-        }
+        const int summaryStartRow = firstItemRow + templateItemCount + 1;
+        ws.Range(summaryStartRow, 5, summaryStartRow + 1, 6).Merge().Value = "GST 18%";
+        ws.Range(summaryStartRow, 7, summaryStartRow, 8).Merge().Value = "Total";
+        ws.Cell(summaryStartRow, 9).Value = _txtSubTotal.Text;
+        ws.Range(summaryStartRow + 1, 7, summaryStartRow + 1, 8).Merge().Value = "GST";
+        ws.Cell(summaryStartRow + 1, 9).Value = _txtGstAmount.Text;
 
-        rowPointer += 1;
-        ws.Cell(rowPointer, 6).Value = "Sub Total";
-        ws.Cell(rowPointer, 8).Value = _txtSubTotal.Text;
-        rowPointer++;
-        ws.Cell(rowPointer, 6).Value = $"GST {_gstPercent.Value:0.##}%";
-        ws.Cell(rowPointer, 8).Value = _txtGstAmount.Text;
-        rowPointer++;
-        ws.Cell(rowPointer, 6).Value = "Grand Total";
-        ws.Cell(rowPointer, 8).Value = _txtGrandTotal.Text;
-        rowPointer++;
-        ws.Cell(rowPointer, 1).Value = "Amount in words:";
-        ws.Cell(rowPointer, 2).Value = _txtAmountWords.Text;
-        ws.Range(rowPointer, 2, rowPointer, 8).Merge();
+        ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 7).Merge().Value = "TOTAL";
+        ws.Range(summaryStartRow + 3, 8, summaryStartRow + 4, 9).Merge().Value = _txtGrandTotal.Text;
+        ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 9).Style.Font.SetBold();
+        ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-        ws.Columns().AdjustToContents();
-        ws.RangeUsed().Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        ws.RangeUsed().Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(summaryStartRow + 6, 2, summaryStartRow + 6, 5).Merge().Value = "Total Amount (in words):";
+        ws.Range(summaryStartRow + 6, 6, summaryStartRow + 6, 9).Merge().Value = _txtAmountWords.Text;
+        ws.Cell(summaryStartRow + 6, 2).Style.Font.SetBold();
+
+        var bankRow = summaryStartRow + 9;
+        ws.Range(bankRow, 1, bankRow, 3).Merge().Value = "Bank Details:";
+        ws.Cell(bankRow, 1).Style.Font.SetBold();
+        ws.Range(bankRow + 1, 1, bankRow + 1, 4).Merge().Value = "Bank: State Bank of India";
+        ws.Range(bankRow + 2, 1, bankRow + 2, 4).Merge().Value = "Branch: Siruthozhil, Ambattur";
+        ws.Range(bankRow + 3, 1, bankRow + 3, 4).Merge().Value = "Account No: 44068068544";
+        ws.Range(bankRow + 4, 1, bankRow + 4, 4).Merge().Value = "IFSC Code: SBIN0004032";
+
+        ws.Range(bankRow + 1, 7, bankRow + 1, 9).Merge().Value = "For R.R Engineering";
+        ws.Range(bankRow + 1, 7, bankRow + 1, 9).Style.Font.SetBold();
+        ws.Range(bankRow + 5, 7, bankRow + 5, 9).Merge().Value = "Authorized Signatory";
+        ws.Range(bankRow + 5, 7, bankRow + 5, 9).Style.Font.SetBold();
+
+        var termsRow = bankRow + 7;
+        ws.Range(termsRow, 1, termsRow, 3).Merge().Value = "Terms & Conditions:";
+        ws.Cell(termsRow, 1).Style.Font.SetBold();
+        ws.Range(termsRow + 1, 1, termsRow + 1, 6).Merge().Value = "1. Payment 100% Advance.";
+        ws.Range(termsRow + 2, 1, termsRow + 2, 6).Merge().Value = "2. Any extra items supplied will be charged.";
+        ws.Range(termsRow + 3, 1, termsRow + 3, 6).Merge().Value = "3. No cancellation once work has commenced.";
+
+        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Merge().Value = "Page 1/1 :This is a computer generated document and requires no signature.";
+        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Style.Font.SetBold();
+
+        ws.Range("A15:I34").Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        ws.Range("A15:I34").Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(summaryStartRow, 5, summaryStartRow + 1, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(summaryStartRow, 5, summaryStartRow + 1, 9).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
         workbook.SaveAs(dialog.FileName);
         MessageBox.Show("Excel exported successfully.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private static void TryInsertCompanyLogo(IXLWorksheet worksheet)
+    {
+        var logoCandidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "logo.png"),
+            Path.Combine(AppContext.BaseDirectory, "rr-logo.png"),
+            Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
+        };
+
+        var logoPath = logoCandidates.FirstOrDefault(File.Exists);
+        if (logoPath is null)
+        {
+            return;
+        }
+
+        var picture = worksheet.AddPicture(logoPath).MoveTo(worksheet.Cell("H2"));
+        picture.WithSize(90, 90);
     }
 
 
