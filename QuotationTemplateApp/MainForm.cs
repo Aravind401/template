@@ -1,4 +1,7 @@
 using ClosedXML.Excel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System.ComponentModel;
 using System.Globalization;
 
@@ -25,6 +28,7 @@ public class MainForm : Form
     private readonly Button _btnDeleteRow = new() { Text = "Delete Selected Row" };
     private readonly Button _btnRecalculate = new() { Text = "Recalculate" };
     private readonly Button _btnExportExcel = new() { Text = "Export to Excel" };
+    private readonly Button _btnExportPdf = new() { Text = "Export to PDF" };
 
     public MainForm()
     {
@@ -105,7 +109,7 @@ public class MainForm : Form
             FlowDirection = FlowDirection.LeftToRight
         };
 
-        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnExportExcel });
+        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnExportExcel, _btnExportPdf });
 
         root.Controls.Add(header, 0, 0);
         root.Controls.Add(gridHost, 0, 1);
@@ -159,6 +163,7 @@ public class MainForm : Form
         _btnDeleteRow.Click += (_, _) => DeleteSelectedRow();
         _btnRecalculate.Click += (_, _) => RecalculateTotals();
         _btnExportExcel.Click += (_, _) => ExportExcel();
+        _btnExportPdf.Click += (_, _) => ExportPdf();
         _gstPercent.ValueChanged += (_, _) => RecalculateTotals();
 
         _itemsGrid.CellEndEdit += (_, e) =>
@@ -308,6 +313,110 @@ public class MainForm : Form
 
         workbook.SaveAs(dialog.FileName);
         MessageBox.Show("Excel exported successfully.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+
+    private void ExportPdf()
+    {
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "PDF Document|*.pdf",
+            FileName = $"Quotation-{_txtQuotationNo.Text.Trim()}-{DateTime.Now:yyyyMMddHHmmss}.pdf"
+        };
+
+        if (dialog.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
+
+        var itemRows = _itemsGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => !r.IsNewRow)
+            .Select(r => new[]
+            {
+                r.Cells["No"].Value?.ToString() ?? string.Empty,
+                r.Cells["Item"].Value?.ToString() ?? string.Empty,
+                r.Cells["W"].Value?.ToString() ?? string.Empty,
+                r.Cells["H"].Value?.ToString() ?? string.Empty,
+                r.Cells["Qty"].Value?.ToString() ?? string.Empty,
+                r.Cells["Soft"].Value?.ToString() ?? string.Empty,
+                r.Cells["Rate"].Value?.ToString() ?? string.Empty,
+                r.Cells["Amount"].Value?.ToString() ?? string.Empty
+            })
+            .ToList();
+
+        Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(8);
+                    col.Item().Text("QUOTATION").SemiBold().FontSize(16);
+                    col.Item().Text(_txtCompany.Text).SemiBold().FontSize(12);
+                    col.Item().Text($"Customer: {_txtCustomer.Text}");
+                    col.Item().Text($"Phone: {_txtPhone.Text}");
+                    col.Item().Text($"Place of Supply: {_txtSupplyPlace.Text}");
+                    col.Item().Text($"Quotation No: {_txtQuotationNo.Text}");
+                    col.Item().Text($"Quotation Date: {_quoteDate.Value:dd MMM yyyy}");
+                    col.Item().Text($"Validity: {_validityDate.Value:dd MMM yyyy}");
+
+                    col.Item().PaddingTop(6).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(35);
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        static void Header(IContainer container, string text) =>
+                            container.Background(Colors.Grey.Lighten2).Padding(4).Text(text).SemiBold();
+
+                        Header(table.Cell(), "NO");
+                        Header(table.Cell(), "Item");
+                        Header(table.Cell(), "W");
+                        Header(table.Cell(), "H");
+                        Header(table.Cell(), "Qty");
+                        Header(table.Cell(), "Soft");
+                        Header(table.Cell(), "Rate");
+                        Header(table.Cell(), "Amount");
+
+                        foreach (var row in itemRows)
+                        {
+                            foreach (var value in row)
+                            {
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(value);
+                            }
+                        }
+                    });
+
+                    col.Item().PaddingTop(10).Row(row =>
+                    {
+                        row.RelativeItem();
+                        row.ConstantItem(250).Column(summary =>
+                        {
+                            summary.Item().Text($"Sub Total: {_txtSubTotal.Text}");
+                            summary.Item().Text($"GST {_gstPercent.Value:0.##}%: {_txtGstAmount.Text}");
+                            summary.Item().Text($"Grand Total: {_txtGrandTotal.Text}").SemiBold();
+                        });
+                    });
+
+                    col.Item().PaddingTop(8).Text($"Amount in words: {_txtAmountWords.Text}");
+                });
+            });
+        }).GeneratePdf(dialog.FileName);
+
+        MessageBox.Show("PDF exported successfully.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     private static decimal ToDecimal(object? value)
