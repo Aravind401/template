@@ -39,6 +39,10 @@ public class MainForm : Form
     private readonly Button _btnSaveData = new() { Text = "Save Data" };
     private readonly Button _btnExportExcel = new() { Text = "Export Excel" };
     private readonly Button _btnExportPdf = new() { Text = "Export PDF" };
+    private readonly Button _btnOwnerConfig = new() { Text = "Owner Configuration" };
+    private readonly Button _btnCustomerConfig = new() { Text = "Customer Configuration" };
+    private readonly TextBox _txtCustomerSummary = new() { ReadOnly = true };
+    private readonly TextBox _txtOwnerSummary = new() { ReadOnly = true };
     private readonly AppDataStore _dataStore;
     private readonly string _dataDirectory;
     private string? _logoPath;
@@ -81,7 +85,7 @@ public class MainForm : Form
 
         var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 1, Padding = new Padding(0, 0, 0, 6) };
         topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        topPanel.Controls.Add(BuildCustomerPanel(), 0, 0);
+        topPanel.Controls.Add(BuildConfigurationPanel(), 0, 0);
 
         var gridHost = new Panel { Dock = DockStyle.Fill };
         _itemsGrid.Dock = DockStyle.Fill;
@@ -134,41 +138,55 @@ public class MainForm : Form
         Controls.Add(root);
     }
 
-    private Control BuildCustomerPanel()
+    private Control BuildConfigurationPanel()
     {
-        _txtCustomerAddress.Multiline = true;
-        _txtCustomerAddress.ScrollBars = ScrollBars.Vertical;
-        _txtPhone.MinimumSize = new Size(0, 32);
+        _txtOwnerSummary.Multiline = true;
+        _txtOwnerSummary.MinimumSize = new Size(0, 52);
+        _txtOwnerSummary.Dock = DockStyle.Fill;
 
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        _txtCustomerSummary.Multiline = true;
+        _txtCustomerSummary.MinimumSize = new Size(0, 52);
+        _txtCustomerSummary.Dock = DockStyle.Fill;
 
-        panel.Controls.Add(new Label
-        {
-            Text = "Customer Details",
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft
-        }, 0, 0);
-        panel.SetColumnSpan(panel.GetControlFromPosition(0, 0), 2);
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
 
-        AddField(panel, "Name", _txtCustomer, 0, 1);
-        AddField(panel, "Phone No", _txtPhone, 0, 2);
-        AddField(panel, "Address", _txtCustomerAddress, 0, 3);
-        AddField(panel, "Place of Delivery", _txtSupplyPlace, 0, 4);
+        var configPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 2 };
+        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        configPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));
+        configPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+        configPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+
+        AddField(configPanel, "Owner", _txtOwnerSummary, 0, 0);
+        _btnOwnerConfig.Dock = DockStyle.Fill;
+        configPanel.Controls.Add(_btnOwnerConfig, 2, 0);
+
+        AddField(configPanel, "Customer", _txtCustomerSummary, 0, 1);
+        _btnCustomerConfig.Dock = DockStyle.Fill;
+        configPanel.Controls.Add(_btnCustomerConfig, 2, 1);
+
+        var quotationPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3 };
+        quotationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        quotationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        quotationPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        quotationPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        quotationPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+
+        AddField(quotationPanel, "Quotation No", _txtQuotationNo, 0, 0);
+        AddField(quotationPanel, "Quote Date", _quoteDate, 0, 1);
+        AddField(quotationPanel, "Validity", _validityDate, 0, 2);
+
+        panel.Controls.Add(configPanel, 0, 0);
+        panel.Controls.Add(quotationPanel, 1, 0);
 
         return panel;
     }
 
     private void ConfigureButtons()
     {
-        var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf };
+        var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf, _btnOwnerConfig, _btnCustomerConfig };
         foreach (var button in buttons)
         {
             button.Width = 160;
@@ -236,6 +254,8 @@ public class MainForm : Form
         };
         _btnExportExcel.Click += (_, _) => ExportExcel();
         _btnExportPdf.Click += (_, _) => ExportPdf();
+        _btnOwnerConfig.Click += (_, _) => OpenOwnerConfiguration();
+        _btnCustomerConfig.Click += (_, _) => OpenCustomerConfiguration();
         _gstPercent.ValueChanged += (_, _) =>
         {
             RecalculateTotals();
@@ -306,6 +326,7 @@ public class MainForm : Form
         }
 
         RefreshMaterialSuggestions();
+        UpdateConfigurationSummaries();
         _isLoadingData = false;
     }
 
@@ -329,6 +350,8 @@ public class MainForm : Form
         {
             return;
         }
+
+        UpdateConfigurationSummaries();
 
         var owner = new OwnerData(
             _txtCompany.Text.Trim(),
@@ -362,6 +385,74 @@ public class MainForm : Form
             .ToList();
 
         _dataStore.SaveState(new AppState(owner, quotation, items));
+    }
+
+
+    private void OpenOwnerConfiguration()
+    {
+        var currentOwner = new OwnerData(
+            _txtCompany.Text.Trim(),
+            _txtGstin.Text.Trim(),
+            _txtCompanyAddress.Text.Trim(),
+            _txtCompanyPhone.Text.Trim(),
+            _txtCompanyEmail.Text.Trim(),
+            _logoPath);
+
+        using var dialog = new OwnerDetailsForm(currentOwner);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var owner = dialog.OwnerDetails;
+        _txtCompany.Text = owner.Company;
+        _txtGstin.Text = owner.Gstin;
+        _txtCompanyAddress.Text = owner.Address;
+        _txtCompanyPhone.Text = owner.Phone;
+        _txtCompanyEmail.Text = owner.Email;
+        _logoPath = owner.LogoPath;
+
+        UpdateConfigurationSummaries();
+        SaveState();
+    }
+
+    private void OpenCustomerConfiguration()
+    {
+        var currentCustomer = new QuotationData(
+            _txtCustomer.Text.Trim(),
+            _txtCustomerAddress.Text.Trim(),
+            _txtPhone.Text.Trim(),
+            _txtSupplyPlace.Text.Trim(),
+            _txtQuotationNo.Text.Trim(),
+            _quoteDate.Value.Date,
+            _validityDate.Value.Date,
+            _gstPercent.Value);
+
+        using var dialog = new CustomerDetailsForm(currentCustomer);
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var customer = dialog.CustomerDetails;
+        _txtCustomer.Text = customer.CustomerName;
+        _txtCustomerAddress.Text = customer.CustomerAddress;
+        _txtPhone.Text = customer.CustomerPhone;
+        _txtSupplyPlace.Text = customer.SupplyPlace;
+
+        UpdateConfigurationSummaries();
+        SaveState();
+    }
+
+    private void UpdateConfigurationSummaries()
+    {
+        _txtOwnerSummary.Text = string.IsNullOrWhiteSpace(_txtCompany.Text)
+            ? "Owner details are not configured"
+            : $"{_txtCompany.Text.Trim()} | GSTIN: {_txtGstin.Text.Trim()}";
+
+        _txtCustomerSummary.Text = string.IsNullOrWhiteSpace(_txtCustomer.Text)
+            ? "Customer details are not configured"
+            : $"{_txtCustomer.Text.Trim()} | {_txtSupplyPlace.Text.Trim()}";
     }
 
     private void RefreshMaterialSuggestions()
