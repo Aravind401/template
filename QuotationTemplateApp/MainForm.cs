@@ -173,7 +173,7 @@ public class MainForm : Form
         AddField(owner, "Company", _txtCompany, 0, 1);
         AddField(owner, "GSTIN", _txtGstin, 2, 1);
         AddField(owner, "Address", _txtCompanyAddress, 0, 2, 4);
-        AddField(owner, "Phone Number", _txtCompanyPhone, 0, 3);
+        AddField(owner, "Phone Number", _txtCompanyPhone, 0, 3, 4);
         AddField(owner, "Email", _txtCompanyEmail, 0, 4, 4);
 
         var logoPanel = new TableLayoutPanel
@@ -618,7 +618,8 @@ public class MainForm : Form
         ws.Range("A2:F2").Merge().Value = "Quotation Owner Configuration";
         ws.Cell("A2").Style.Font.SetBold();
         ws.Range("A3:F3").Merge().Value = _txtCompany.Text;
-        ws.Cell("A3").Style.Font.SetBold().SetFontSize(14);
+        ws.Cell("A3").Style.Font.Bold = true;
+        ws.Cell("A3").Style.Font.FontSize = 14;
         ws.Range("A4:F4").Merge().Value = $"GSTIN: {_txtGstin.Text}";
         ws.Range("A5:F5").Merge().Value = $"Address: {_txtCompanyAddress.Text}";
         ws.Range("A6:F6").Merge().Value = $"Phone: {_txtCompanyPhone.Text}";
@@ -655,8 +656,9 @@ public class MainForm : Form
         tableHeader.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         tableHeader.Style.Font.Bold = true;
 
+        var itemRows = GetExportItemRows();
         const int firstItemRow = 19;
-        const int templateItemCount = 18;
+        var templateItemCount = Math.Max(1, itemRows.Count);
 
         for (var i = 0; i < templateItemCount; i++)
         {
@@ -664,16 +666,16 @@ public class MainForm : Form
             ws.Cell(excelRow, 1).Value = i + 1;
             ws.Cell(excelRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            if (i < _itemsGrid.Rows.Count)
+            if (i < itemRows.Count)
             {
-                var row = _itemsGrid.Rows[i];
-                ws.Range(excelRow, 2, excelRow, 3).Merge().Value = row.Cells["Item"].Value?.ToString();
-                ws.Cell(excelRow, 4).Value = row.Cells["W"].Value?.ToString();
-                ws.Cell(excelRow, 5).Value = row.Cells["H"].Value?.ToString();
-                ws.Cell(excelRow, 6).Value = row.Cells["Qty"].Value?.ToString();
-                ws.Cell(excelRow, 7).Value = row.Cells["Soft"].Value?.ToString();
-                ws.Cell(excelRow, 8).Value = row.Cells["Rate"].Value?.ToString();
-                ws.Cell(excelRow, 9).Value = row.Cells["Amount"].Value?.ToString();
+                var row = itemRows[i];
+                ws.Range(excelRow, 2, excelRow, 3).Merge().Value = row[1];
+                ws.Cell(excelRow, 4).Value = row[2];
+                ws.Cell(excelRow, 5).Value = row[3];
+                ws.Cell(excelRow, 6).Value = row[4];
+                ws.Cell(excelRow, 7).Value = row[5];
+                ws.Cell(excelRow, 8).Value = row[6];
+                ws.Cell(excelRow, 9).Value = row[7];
             }
             else
             {
@@ -690,7 +692,8 @@ public class MainForm : Form
 
         ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 7).Merge().Value = "TOTAL AMOUNT";
         ws.Range(summaryStartRow + 3, 8, summaryStartRow + 4, 9).Merge().Value = _txtGrandTotal.Text;
-        ws.Range(summaryStartRow + 3, 8, summaryStartRow + 4, 9).Style.Font.SetBold().SetFontSize(14);
+        ws.Range(summaryStartRow + 3, 8, summaryStartRow + 4, 9).Style.Font.Bold = true;
+        ws.Range(summaryStartRow + 3, 8, summaryStartRow + 4, 9).Style.Font.FontSize = 14;
 
         ws.Range(summaryStartRow + 6, 2, summaryStartRow + 6, 5).Merge().Value = "Total Amount (in words):";
         ws.Range(summaryStartRow + 6, 6, summaryStartRow + 6, 9).Merge().Value = _txtAmountWords.Text;
@@ -716,12 +719,10 @@ public class MainForm : Form
         ws.Range(termsRow + 2, 1, termsRow + 2, 6).Merge().Value = "2. Any extra items supplied will be charged.";
         ws.Range(termsRow + 3, 1, termsRow + 3, 6).Merge().Value = "3. No cancellation once work has commenced.";
 
-        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Merge().Value = "Page 1/1 :This is a computer generated document and requires no signature.";
-        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        ws.Range(termsRow + 5, 3, termsRow + 5, 8).Style.Font.SetBold();
+        ws.PageSetup.Footer.Center.AddText("Page &P/&N :This is a computer generated document and requires no signature.");
 
-        ws.Range("A17:I36").Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        ws.Range("A17:I36").Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(17, 1, firstItemRow + templateItemCount - 1, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        ws.Range(17, 1, firstItemRow + templateItemCount - 1, 9).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         ws.Range(summaryStartRow, 5, summaryStartRow + 1, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         ws.Range(summaryStartRow, 5, summaryStartRow + 1, 9).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         ws.Range(summaryStartRow + 3, 6, summaryStartRow + 4, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
@@ -756,21 +757,7 @@ public class MainForm : Form
 
         var logoBytes = LoadLogoBytes(ResolveLogoPath());
 
-        var itemRows = _itemsGrid.Rows
-            .Cast<DataGridViewRow>()
-            .Where(r => !r.IsNewRow)
-            .Select(r => new[]
-            {
-                r.Cells["No"].Value?.ToString() ?? string.Empty,
-                r.Cells["Item"].Value?.ToString() ?? string.Empty,
-                r.Cells["W"].Value?.ToString() ?? string.Empty,
-                r.Cells["H"].Value?.ToString() ?? string.Empty,
-                r.Cells["Qty"].Value?.ToString() ?? string.Empty,
-                r.Cells["Soft"].Value?.ToString() ?? string.Empty,
-                r.Cells["Rate"].Value?.ToString() ?? string.Empty,
-                r.Cells["Amount"].Value?.ToString() ?? string.Empty
-            })
-            .ToList();
+        var itemRows = GetExportItemRows();
 
         Document.Create(container =>
         {
@@ -779,6 +766,14 @@ public class MainForm : Form
                 page.Size(PageSizes.A4);
                 page.Margin(20);
                 page.DefaultTextStyle(x => x.FontSize(10));
+                page.Footer().AlignCenter().Text(text =>
+                {
+                    text.Span("Page ");
+                    text.CurrentPageNumber();
+                    text.Span("/");
+                    text.TotalPages();
+                    text.Span(" :This is a computer generated document and requires no signature.");
+                }).SemiBold();
 
                 page.Content().Column(col =>
                 {
@@ -848,6 +843,11 @@ public class MainForm : Form
                         Header(table.Cell(), "Rate");
                         Header(table.Cell(), "Amount");
 
+                        if (itemRows.Count == 0)
+                        {
+                            table.Cell().ColumnSpan(8).BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(4).Text("No materials added").Italic();
+                        }
+
                         foreach (var row in itemRows)
                         {
                             foreach (var value in row)
@@ -905,7 +905,6 @@ public class MainForm : Form
                     col.Item().Text("2. Any extra items supplied will be charged.");
                     col.Item().Text("3. No cancellation once work has commenced.");
 
-                    col.Item().PaddingTop(8).AlignCenter().Text("Page 1/1 :This is a computer generated document and requires no signature.").SemiBold();
                 });
             });
         }).GeneratePdf(dialog.FileName);
@@ -935,6 +934,43 @@ public class MainForm : Form
         return string.IsNullOrWhiteSpace(logoPath) || !File.Exists(logoPath)
             ? null
             : File.ReadAllBytes(logoPath);
+    }
+
+    private List<string[]> GetExportItemRows()
+    {
+        var rows = _itemsGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => !r.IsNewRow)
+            .Select(r => new
+            {
+                MaterialName = r.Cells["Item"].Value?.ToString()?.Trim() ?? string.Empty,
+                W = r.Cells["W"].Value?.ToString() ?? string.Empty,
+                H = r.Cells["H"].Value?.ToString() ?? string.Empty,
+                Qty = r.Cells["Qty"].Value?.ToString() ?? string.Empty,
+                Soft = r.Cells["Soft"].Value?.ToString() ?? string.Empty,
+                Rate = r.Cells["Rate"].Value?.ToString() ?? string.Empty,
+                Amount = r.Cells["Amount"].Value?.ToString() ?? string.Empty
+            })
+            .Where(r => !string.IsNullOrWhiteSpace(r.MaterialName))
+            .ToList();
+
+        var result = new List<string[]>(rows.Count);
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            result.Add([
+                (i + 1).ToString(CultureInfo.InvariantCulture),
+                row.MaterialName,
+                row.W,
+                row.H,
+                row.Qty,
+                row.Soft,
+                row.Rate,
+                row.Amount
+            ]);
+        }
+
+        return result;
     }
 
     private static decimal ToDecimal(object? value)

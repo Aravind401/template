@@ -17,6 +17,18 @@ This repository contains a **C# WinForms (.NET 8)** desktop application for crea
 3. Restore NuGet packages.
 4. Run the `QuotationTemplateApp` project.
 
+## Build MSI Installer (Windows)
+1. Open PowerShell.
+2. Run:
+
+   ```powershell
+   ./installer/build-msi.ps1 -Configuration Release -Runtime win-x64 -Version 1.0.0
+   ```
+
+3. The MSI will be created in `artifacts/`.
+
+> The script publishes the app, installs WiX CLI (if missing), and generates the MSI in one command.
+
 ## Excel Export
 Use the **Export to Excel** button and choose a save location. The generated workbook includes:
 - Header details (company, customer, dates, quotation number)
