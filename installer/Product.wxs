@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Quotation Template App"
+    Manufacturer="R.R Engineering"
+    Version="$(var.Version)"
+    UpgradeCode="{D1CE4477-C093-4F76-B91D-2E79AC30E0A9}"
+    Language="1033"
+    Scope="perMachine"
+    InstallerVersion="500">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Quotation Template App" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Quotation Template App" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+    </Feature>
+
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallValidate" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <?foreach file in $(var.AppFiles)?>
+      <Component Guid="*">
+        <File Source="$(file)" />
+      </Component>
+      <?endforeach?>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
