@@ -768,12 +768,12 @@ public class MainForm : Form
                 page.DefaultTextStyle(x => x.FontSize(10));
                 page.Footer().AlignCenter().Text(text =>
                 {
-                    text.Span("Page ");
-                    text.CurrentPageNumber();
-                    text.Span("/");
-                    text.TotalPages();
-                    text.Span(" :This is a computer generated document and requires no signature.");
-                }).SemiBold();
+                    text.Span("Page ").SemiBold();
+                    text.CurrentPageNumber().SemiBold();
+                    text.Span("/").SemiBold();
+                    text.TotalPages().SemiBold();
+                    text.Span(" :This is a computer generated document and requires no signature.").SemiBold();
+                });
 
                 page.Content().Column(col =>
                 {
