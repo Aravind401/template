@@ -39,16 +39,6 @@ public class MainForm : Form
     private readonly Button _btnSaveData = new() { Text = "Save Data" };
     private readonly Button _btnExportExcel = new() { Text = "Export Excel" };
     private readonly Button _btnExportPdf = new() { Text = "Export PDF" };
-    private readonly Button _btnOwnerDetails = new() { Text = "Owner Details" };
-
-    private readonly Label _lblOwnerCompany = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
-    private readonly Label _lblOwnerGstin = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
-    private readonly Label _lblOwnerPhone = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
-    private readonly Label _lblOwnerEmail = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
-
-    private readonly PictureBox _logoPreview = new() { SizeMode = PictureBoxSizeMode.Zoom, Dock = DockStyle.Fill };
-    private readonly Button _btnUploadLogo = new() { Text = "Upload Logo" };
-
     private readonly AppDataStore _dataStore;
     private readonly string _dataDirectory;
     private string? _logoPath;
@@ -84,19 +74,14 @@ public class MainForm : Form
             Padding = new Padding(10)
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 300));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 140));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 160));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
 
-        var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(0, 0, 0, 6) };
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
-
-        topPanel.Controls.Add(BuildOwnerAndCustomerPanel(), 0, 0);
-        topPanel.Controls.Add(BuildQuotationInfoPanel(), 0, 1);
-        topPanel.Controls.Add(BuildCustomerPanel(), 0, 2);
+        var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 1, Padding = new Padding(0, 0, 0, 6) };
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        topPanel.Controls.Add(BuildCustomerPanel(), 0, 0);
 
         var gridHost = new Panel { Dock = DockStyle.Fill };
         _itemsGrid.Dock = DockStyle.Fill;
@@ -139,7 +124,7 @@ public class MainForm : Form
             Padding = new Padding(0, 5, 0, 0)
         };
 
-        actions.Controls.AddRange(new Control[] { _btnOwnerDetails, _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf });
+        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf });
 
         root.Controls.Add(topPanel, 0, 0);
         root.Controls.Add(gridHost, 0, 1);
@@ -147,100 +132,6 @@ public class MainForm : Form
         root.Controls.Add(actions, 0, 3);
 
         Controls.Add(root);
-    }
-
-    private Control BuildOwnerAndCustomerPanel()
-    {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-
-        var owner = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 6,
-            Padding = new Padding(8),
-            BackColor = Color.WhiteSmoke
-        };
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-        owner.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var title = new Label
-        {
-            Text = "Owner Configuration",
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 10, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-        owner.Controls.Add(title, 0, 0);
-        owner.SetColumnSpan(title, 2);
-        AddSummaryField(owner, "Company", _lblOwnerCompany, 1);
-        AddSummaryField(owner, "GSTIN", _lblOwnerGstin, 2);
-        AddSummaryField(owner, "Phone", _lblOwnerPhone, 3);
-        AddSummaryField(owner, "Email", _lblOwnerEmail, 4);
-
-        var logoPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            BorderStyle = BorderStyle.FixedSingle,
-            RowCount = 2,
-            ColumnCount = 1,
-            Padding = new Padding(6)
-        };
-        logoPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        logoPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-
-        _logoPreview.Image = null;
-        _logoPreview.BackColor = Color.WhiteSmoke;
-
-        _btnUploadLogo.Dock = DockStyle.Fill;
-        _btnUploadLogo.Font = new Font("Segoe UI", 9, FontStyle.Bold);
-
-        logoPanel.Controls.Add(_logoPreview, 0, 0);
-        logoPanel.Controls.Add(_btnUploadLogo, 0, 1);
-
-        panel.Controls.Add(owner, 0, 0);
-        panel.Controls.Add(logoPanel, 1, 0);
-
-        return panel;
-    }
-
-    private static void AddSummaryField(TableLayoutPanel panel, string label, Label value, int row)
-    {
-        panel.Controls.Add(new Label
-        {
-            Text = label,
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            TextAlign = ContentAlignment.MiddleLeft
-        }, 0, row);
-
-        value.TextAlign = ContentAlignment.MiddleLeft;
-        value.Font = new Font("Segoe UI", 9);
-        panel.Controls.Add(value, 1, row);
-    }
-
-    private Control BuildQuotationInfoPanel()
-    {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-
-        AddField(panel, "Quotation No", _txtQuotationNo, 0, 0);
-        AddField(panel, "Quotation Date", _quoteDate, 2, 0);
-        AddField(panel, "Validity", _validityDate, 4, 0);
-        return panel;
     }
 
     private Control BuildCustomerPanel()
@@ -278,11 +169,6 @@ public class MainForm : Form
     private void ConfigureButtons()
     {
         var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf };
-        _btnOwnerDetails.Width = 180;
-        _btnOwnerDetails.Height = 38;
-        _btnOwnerDetails.Font = new Font("Segoe UI", 10, FontStyle.Bold);
-        _btnOwnerDetails.Margin = new Padding(0, 0, 10, 0);
-
         foreach (var button in buttons)
         {
             button.Width = 160;
@@ -348,8 +234,6 @@ public class MainForm : Form
             SaveState();
             MessageBox.Show("Data saved successfully.", "Save", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
-        _btnUploadLogo.Click += (_, _) => UploadLogo();
-        _btnOwnerDetails.Click += (_, _) => ShowOwnerDetailsDialog();
         _btnExportExcel.Click += (_, _) => ExportExcel();
         _btnExportPdf.Click += (_, _) => ExportPdf();
         _gstPercent.ValueChanged += (_, _) =>
@@ -405,8 +289,6 @@ public class MainForm : Form
         _gstPercent.Value = Math.Clamp(state.Quotation.GstPercent, _gstPercent.Minimum, _gstPercent.Maximum);
 
         _logoPath = state.Owner.LogoPath;
-        LoadLogoPreview();
-
         _itemsGrid.Rows.Clear();
         if (state.Items.Count == 0)
         {
@@ -424,8 +306,6 @@ public class MainForm : Form
         }
 
         RefreshMaterialSuggestions();
-        RefreshOwnerSummary();
-
         _isLoadingData = false;
     }
 
@@ -482,83 +362,6 @@ public class MainForm : Form
             .ToList();
 
         _dataStore.SaveState(new AppState(owner, quotation, items));
-        RefreshOwnerSummary();
-    }
-
-    private void RefreshOwnerSummary()
-    {
-        _lblOwnerCompany.Text = _txtCompany.Text;
-        _lblOwnerGstin.Text = _txtGstin.Text;
-        _lblOwnerPhone.Text = _txtCompanyPhone.Text;
-        _lblOwnerEmail.Text = _txtCompanyEmail.Text;
-    }
-
-    private void ShowOwnerDetailsDialog()
-    {
-        using var dialog = new OwnerDetailsForm(new OwnerData(
-            _txtCompany.Text,
-            _txtGstin.Text,
-            _txtCompanyAddress.Text,
-            _txtCompanyPhone.Text,
-            _txtCompanyEmail.Text,
-            _logoPath));
-
-        if (dialog.ShowDialog(this) != DialogResult.OK)
-        {
-            return;
-        }
-
-        var owner = dialog.OwnerDetails;
-        _txtCompany.Text = owner.Company;
-        _txtGstin.Text = owner.Gstin;
-        _txtCompanyAddress.Text = owner.Address;
-        _txtCompanyPhone.Text = owner.Phone;
-        _txtCompanyEmail.Text = owner.Email;
-        _logoPath = owner.LogoPath;
-        LoadLogoPreview();
-        SaveState();
-    }
-
-    private void UploadLogo()
-    {
-        using var dialog = new OpenFileDialog
-        {
-            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp|All files|*.*",
-            Title = "Select owner logo"
-        };
-
-        if (dialog.ShowDialog() != DialogResult.OK)
-        {
-            return;
-        }
-
-        var extension = Path.GetExtension(dialog.FileName);
-        var savedPath = Path.Combine(_dataDirectory, $"owner-logo{extension}");
-
-        foreach (var file in Directory.GetFiles(_dataDirectory, "owner-logo.*"))
-        {
-            File.Delete(file);
-        }
-
-        File.Copy(dialog.FileName, savedPath, true);
-        _logoPath = savedPath;
-        LoadLogoPreview();
-        SaveState();
-    }
-
-    private void LoadLogoPreview()
-    {
-        _logoPreview.Image?.Dispose();
-        _logoPreview.Image = null;
-
-        if (string.IsNullOrWhiteSpace(_logoPath) || !File.Exists(_logoPath))
-        {
-            return;
-        }
-
-        using var stream = new FileStream(_logoPath, FileMode.Open, FileAccess.Read);
-        using var source = Image.FromStream(stream);
-        _logoPreview.Image = new Bitmap(source);
     }
 
     private void RefreshMaterialSuggestions()
