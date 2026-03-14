@@ -69,15 +69,15 @@ public class MainForm : Form
             Padding = new Padding(10)
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 300));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 370));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
 
         var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 16));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 26));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 115));
 
         topPanel.Controls.Add(BuildOwnerAndCustomerPanel(), 0, 0);
         topPanel.Controls.Add(BuildQuotationInfoPanel(), 0, 1);
@@ -95,10 +95,12 @@ public class MainForm : Form
             Padding = new Padding(0, 10, 0, 0)
         };
 
-        for (var i = 0; i < 6; i++)
-        {
-            totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.66F));
-        }
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
 
         AddField(totals, "GST %", _gstPercent, 0, 0);
         AddField(totals, "Sub Total", _txtSubTotal, 2, 0);
@@ -129,7 +131,7 @@ public class MainForm : Form
     private Control BuildOwnerAndCustomerPanel()
     {
         _txtCompanyAddress.Multiline = true;
-        _txtCustomerAddress.Multiline = true;
+        _txtCompanyAddress.ScrollBars = ScrollBars.Vertical;
 
         var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 8) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75));
@@ -138,10 +140,10 @@ public class MainForm : Form
         panel.RowStyles.Add(new RowStyle(SizeType.Percent, 18));
 
         var owner = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 5 };
-        for (var i = 0; i < 4; i++)
-        {
-            owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        }
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
         owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));
@@ -182,10 +184,12 @@ public class MainForm : Form
     private Control BuildQuotationInfoPanel()
     {
         var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
-        for (var i = 0; i < 6; i++)
-        {
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.66F));
-        }
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
 
         AddField(panel, "Quotation No", _txtQuotationNo, 0, 0);
         AddField(panel, "Quotation Date", _quoteDate, 2, 0);
@@ -195,14 +199,18 @@ public class MainForm : Form
 
     private Control BuildCustomerPanel()
     {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 3 };
-        for (var i = 0; i < 4; i++)
-        {
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        }
+        _txtCustomerAddress.Multiline = true;
+        _txtCustomerAddress.ScrollBars = ScrollBars.Vertical;
+
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 4 };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
         panel.Controls.Add(new Label
         {
@@ -216,7 +224,7 @@ public class MainForm : Form
         AddField(panel, "Name", _txtCustomer, 0, 1);
         AddField(panel, "Phone No", _txtPhone, 2, 1);
         AddField(panel, "Address", _txtCustomerAddress, 0, 2);
-        AddField(panel, "Place of Supply", _txtSupplyPlace, 2, 2);
+        AddField(panel, "Place of Supply", _txtSupplyPlace, 0, 3);
 
         return panel;
     }
