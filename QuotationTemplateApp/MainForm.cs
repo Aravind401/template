@@ -69,15 +69,15 @@ public class MainForm : Form
             Padding = new Padding(10)
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 260));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 300));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
 
         var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 18));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 16));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 26));
 
         topPanel.Controls.Add(BuildOwnerAndCustomerPanel(), 0, 0);
         topPanel.Controls.Add(BuildQuotationInfoPanel(), 0, 1);
@@ -128,15 +128,25 @@ public class MainForm : Form
 
     private Control BuildOwnerAndCustomerPanel()
     {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
+        _txtCompanyAddress.Multiline = true;
+        _txtCustomerAddress.Multiline = true;
+
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 8) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 82));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 18));
 
-        var owner = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 3 };
+        var owner = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 5 };
         for (var i = 0; i < 4; i++)
         {
             owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         }
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
 
         owner.Controls.Add(new Label
         {
@@ -149,16 +159,9 @@ public class MainForm : Form
 
         AddField(owner, "Company", _txtCompany, 0, 1);
         AddField(owner, "GSTIN", _txtGstin, 2, 1);
-        AddField(owner, "Address", _txtCompanyAddress, 0, 2);
-        owner.SetColumnSpan(_txtCompanyAddress, 3);
-        AddField(owner, "Phone", _txtCompanyPhone, 2, 2);
-
-        var emailRow = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
-        emailRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
-        emailRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        emailRow.Controls.Add(new Label { Text = "Email", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI", 9, FontStyle.Bold) }, 0, 0);
-        _txtCompanyEmail.Dock = DockStyle.Fill;
-        emailRow.Controls.Add(_txtCompanyEmail, 1, 0);
+        AddField(owner, "Address", _txtCompanyAddress, 0, 2, 4);
+        AddField(owner, "Phone", _txtCompanyPhone, 0, 3);
+        AddField(owner, "Email", _txtCompanyEmail, 0, 4, 4);
 
         var logoPanel = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle };
         logoPanel.Controls.Add(new Label
@@ -171,14 +174,14 @@ public class MainForm : Form
 
         panel.Controls.Add(owner, 0, 0);
         panel.Controls.Add(logoPanel, 1, 0);
-        panel.Controls.Add(emailRow, 0, 1);
+        panel.SetRowSpan(logoPanel, 2);
 
         return panel;
     }
 
     private Control BuildQuotationInfoPanel()
     {
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1 };
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
         for (var i = 0; i < 6; i++)
         {
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.66F));
@@ -197,6 +200,9 @@ public class MainForm : Form
         {
             panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
         }
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
 
         panel.Controls.Add(new Label
         {
@@ -289,8 +295,6 @@ public class MainForm : Form
         var index = _itemsGrid.Rows.Add();
         var row = _itemsGrid.Rows[index];
         row.Cells["No"].Value = (index + 1).ToString(CultureInfo.InvariantCulture);
-        row.Cells["Qty"].Value = "1";
-        row.Cells["Rate"].Value = "100";
         UpdateRowAmount(index);
         RecalculateTotals();
     }
@@ -330,8 +334,8 @@ public class MainForm : Form
         }
 
         var row = _itemsGrid.Rows[rowIndex];
-        var qty = ToDecimal(row.Cells["Qty"].Value);
-        var rate = ToDecimal(row.Cells["Rate"].Value);
+        var qty = ToDouble(row.Cells["Qty"].Value);
+        var rate = ToDouble(row.Cells["Rate"].Value);
         var amount = qty * rate;
         row.Cells["Amount"].Value = amount.ToString("0.00", CultureInfo.InvariantCulture);
     }
@@ -710,6 +714,18 @@ public class MainForm : Form
         }
 
         return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : 0;
+    }
+
+    private static double ToDouble(object? value)
+    {
+        if (value is null)
+        {
+            return 0;
+        }
+
+        return double.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : 0;
     }
