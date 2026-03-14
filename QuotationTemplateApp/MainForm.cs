@@ -69,7 +69,7 @@ public class MainForm : Form
             Padding = new Padding(10)
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 370));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 430));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
@@ -77,7 +77,7 @@ public class MainForm : Form
         var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
         topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
         topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 115));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 175));
 
         topPanel.Controls.Add(BuildOwnerAndCustomerPanel(), 0, 0);
         topPanel.Controls.Add(BuildQuotationInfoPanel(), 0, 1);
@@ -201,15 +201,15 @@ public class MainForm : Form
     {
         _txtCustomerAddress.Multiline = true;
         _txtCustomerAddress.ScrollBars = ScrollBars.Vertical;
+        _txtPhone.MinimumSize = new Size(0, 32);
 
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 4 };
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
         panel.Controls.Add(new Label
@@ -219,12 +219,12 @@ public class MainForm : Form
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft
         }, 0, 0);
-        panel.SetColumnSpan(panel.GetControlFromPosition(0, 0), 4);
+        panel.SetColumnSpan(panel.GetControlFromPosition(0, 0), 2);
 
         AddField(panel, "Name", _txtCustomer, 0, 1);
-        AddField(panel, "Phone No", _txtPhone, 2, 1);
-        AddField(panel, "Address", _txtCustomerAddress, 0, 2);
-        AddField(panel, "Place of Supply", _txtSupplyPlace, 0, 3);
+        AddField(panel, "Phone No", _txtPhone, 0, 2);
+        AddField(panel, "Address", _txtCustomerAddress, 0, 3);
+        AddField(panel, "Place of Delivery", _txtSupplyPlace, 0, 4);
 
         return panel;
     }
@@ -418,7 +418,7 @@ public class MainForm : Form
         ws.Range("A12:D12").Merge().Value = $"Name: {_txtCustomer.Text}";
         ws.Range("A13:D13").Merge().Value = $"Address: {_txtCustomerAddress.Text}";
         ws.Range("A14:D14").Merge().Value = $"Phone: {_txtPhone.Text}";
-        ws.Range("A15:D15").Merge().Value = $"Place of Supply: {_txtSupplyPlace.Text}";
+        ws.Range("A15:D15").Merge().Value = $"Place of Delivery: {_txtSupplyPlace.Text}";
 
         ws.Range("A17:A18").Merge().Value = "NO";
         ws.Range("B17:C18").Merge().Value = "Material Name";
@@ -608,7 +608,7 @@ public class MainForm : Form
                     col.Item().Text($"Name: {_txtCustomer.Text}");
                     col.Item().Text($"Address: {_txtCustomerAddress.Text}");
                     col.Item().Text($"Phone No: {_txtPhone.Text}");
-                    col.Item().Text($"Place of Supply: {_txtSupplyPlace.Text}");
+                    col.Item().Text($"Place of Delivery: {_txtSupplyPlace.Text}");
 
                     col.Item().PaddingTop(6).Table(table =>
                     {
