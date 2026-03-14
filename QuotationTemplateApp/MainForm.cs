@@ -36,8 +36,18 @@ public class MainForm : Form
     private readonly Button _btnAddRow = new() { Text = "Add" };
     private readonly Button _btnDeleteRow = new() { Text = "Delete" };
     private readonly Button _btnRecalculate = new() { Text = "Recalculate" };
+    private readonly Button _btnSaveData = new() { Text = "Save Data" };
     private readonly Button _btnExportExcel = new() { Text = "Export Excel" };
     private readonly Button _btnExportPdf = new() { Text = "Export PDF" };
+
+    private readonly PictureBox _logoPreview = new() { SizeMode = PictureBoxSizeMode.Zoom, Dock = DockStyle.Fill };
+    private readonly Button _btnUploadLogo = new() { Text = "Upload Logo" };
+
+    private readonly AppDataStore _dataStore;
+    private readonly string _dataDirectory;
+    private string? _logoPath;
+    private bool _isLoadingData;
+    private List<string> _materialSuggestions = [];
 
     public MainForm()
     {
@@ -46,16 +56,15 @@ public class MainForm : Form
         Height = 860;
         StartPosition = FormStartPosition.CenterScreen;
 
+        _dataDirectory = Path.Combine(AppContext.BaseDirectory, "app-data");
+        _dataStore = new AppDataStore(_dataDirectory);
+
         BuildLayout();
         ConfigureGrid();
         WireEvents();
         ConfigureButtons();
 
-        for (var i = 0; i < 18; i++)
-        {
-            AddDefaultRow();
-        }
-
+        LoadSavedState();
         RecalculateTotals();
     }
 
@@ -118,7 +127,7 @@ public class MainForm : Form
             Padding = new Padding(0, 5, 0, 0)
         };
 
-        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnExportExcel, _btnExportPdf });
+        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf });
 
         root.Controls.Add(topPanel, 0, 0);
         root.Controls.Add(gridHost, 0, 1);
@@ -132,6 +141,8 @@ public class MainForm : Form
     {
         _txtCompanyAddress.Multiline = true;
         _txtCompanyAddress.ScrollBars = ScrollBars.Vertical;
+        _txtCompanyPhone.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+        _txtCompanyPhone.MinimumSize = new Size(0, 36);
 
         var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 8) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75));
@@ -162,17 +173,28 @@ public class MainForm : Form
         AddField(owner, "Company", _txtCompany, 0, 1);
         AddField(owner, "GSTIN", _txtGstin, 2, 1);
         AddField(owner, "Address", _txtCompanyAddress, 0, 2, 4);
-        AddField(owner, "Phone", _txtCompanyPhone, 0, 3);
+        AddField(owner, "Phone Number", _txtCompanyPhone, 0, 3);
         AddField(owner, "Email", _txtCompanyEmail, 0, 4, 4);
 
-        var logoPanel = new Panel { Dock = DockStyle.Fill, BorderStyle = BorderStyle.FixedSingle };
-        logoPanel.Controls.Add(new Label
+        var logoPanel = new TableLayoutPanel
         {
-            Text = "Logo will be added\nfrom logo.png",
             Dock = DockStyle.Fill,
-            TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = Color.DimGray
-        });
+            BorderStyle = BorderStyle.FixedSingle,
+            RowCount = 2,
+            ColumnCount = 1,
+            Padding = new Padding(6)
+        };
+        logoPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        logoPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+
+        _logoPreview.Image = null;
+        _logoPreview.BackColor = Color.WhiteSmoke;
+
+        _btnUploadLogo.Dock = DockStyle.Fill;
+        _btnUploadLogo.Font = new Font("Segoe UI", 9, FontStyle.Bold);
+
+        logoPanel.Controls.Add(_logoPreview, 0, 0);
+        logoPanel.Controls.Add(_btnUploadLogo, 0, 1);
 
         panel.Controls.Add(owner, 0, 0);
         panel.Controls.Add(logoPanel, 1, 0);
@@ -231,7 +253,7 @@ public class MainForm : Form
 
     private void ConfigureButtons()
     {
-        var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnExportExcel, _btnExportPdf };
+        var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf };
         foreach (var button in buttons)
         {
             button.Width = 160;
@@ -281,21 +303,219 @@ public class MainForm : Form
 
     private void WireEvents()
     {
-        _btnAddRow.Click += (_, _) => AddDefaultRow();
-        _btnDeleteRow.Click += (_, _) => DeleteSelectedRow();
+        _btnAddRow.Click += (_, _) => { AddDefaultRow(); SaveState(); };
+        _btnDeleteRow.Click += (_, _) => { DeleteSelectedRow(); SaveState(); };
         _btnRecalculate.Click += (_, _) => RecalculateTotals();
+        _btnSaveData.Click += (_, _) =>
+        {
+            SaveState();
+            MessageBox.Show("Data saved successfully.", "Save", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        };
+        _btnUploadLogo.Click += (_, _) => UploadLogo();
         _btnExportExcel.Click += (_, _) => ExportExcel();
         _btnExportPdf.Click += (_, _) => ExportPdf();
-        _gstPercent.ValueChanged += (_, _) => RecalculateTotals();
+        _gstPercent.ValueChanged += (_, _) =>
+        {
+            RecalculateTotals();
+            SaveState();
+        };
 
+        _itemsGrid.EditingControlShowing += OnItemsGridEditingControlShowing;
         _itemsGrid.CellEndEdit += (_, e) =>
         {
             if (e.RowIndex >= 0)
             {
                 UpdateRowAmount(e.RowIndex);
+                RefreshMaterialSuggestions();
                 RecalculateTotals();
+                SaveState();
             }
         };
+
+        foreach (var control in new Control[]
+        {
+            _txtCompany, _txtGstin, _txtCompanyAddress, _txtCompanyPhone, _txtCompanyEmail,
+            _txtCustomer, _txtCustomerAddress, _txtPhone, _txtSupplyPlace, _txtQuotationNo
+        })
+        {
+            control.TextChanged += (_, _) => SaveState();
+        }
+
+        _quoteDate.ValueChanged += (_, _) => SaveState();
+        _validityDate.ValueChanged += (_, _) => SaveState();
+    }
+
+    private void LoadSavedState()
+    {
+        _isLoadingData = true;
+
+        var state = _dataStore.LoadState();
+
+        _txtCompany.Text = state.Owner.Company;
+        _txtGstin.Text = state.Owner.Gstin;
+        _txtCompanyAddress.Text = state.Owner.Address;
+        _txtCompanyPhone.Text = state.Owner.Phone;
+        _txtCompanyEmail.Text = state.Owner.Email;
+
+        _txtCustomer.Text = state.Quotation.CustomerName;
+        _txtCustomerAddress.Text = state.Quotation.CustomerAddress;
+        _txtPhone.Text = state.Quotation.CustomerPhone;
+        _txtSupplyPlace.Text = state.Quotation.SupplyPlace;
+        _txtQuotationNo.Text = state.Quotation.QuotationNo;
+        _quoteDate.Value = state.Quotation.QuoteDate;
+        _validityDate.Value = state.Quotation.ValidityDate;
+        _gstPercent.Value = Math.Clamp(state.Quotation.GstPercent, _gstPercent.Minimum, _gstPercent.Maximum);
+
+        _logoPath = state.Owner.LogoPath;
+        LoadLogoPreview();
+
+        _itemsGrid.Rows.Clear();
+        if (state.Items.Count == 0)
+        {
+            for (var i = 0; i < 18; i++)
+            {
+                AddDefaultRow();
+            }
+        }
+        else
+        {
+            foreach (var item in state.Items.OrderBy(i => i.RowNo))
+            {
+                AddItemRow(item);
+            }
+        }
+
+        RefreshMaterialSuggestions();
+
+        _isLoadingData = false;
+    }
+
+    private void AddItemRow(QuoteItemData item)
+    {
+        var index = _itemsGrid.Rows.Add();
+        var row = _itemsGrid.Rows[index];
+        row.Cells["No"].Value = (index + 1).ToString(CultureInfo.InvariantCulture);
+        row.Cells["Item"].Value = item.MaterialName;
+        row.Cells["W"].Value = item.W;
+        row.Cells["H"].Value = item.H;
+        row.Cells["Qty"].Value = item.Qty;
+        row.Cells["Soft"].Value = item.Soft;
+        row.Cells["Rate"].Value = item.Rate;
+        UpdateRowAmount(index);
+    }
+
+    private void SaveState()
+    {
+        if (_isLoadingData)
+        {
+            return;
+        }
+
+        var owner = new OwnerData(
+            _txtCompany.Text.Trim(),
+            _txtGstin.Text.Trim(),
+            _txtCompanyAddress.Text.Trim(),
+            _txtCompanyPhone.Text.Trim(),
+            _txtCompanyEmail.Text.Trim(),
+            _logoPath);
+
+        var quotation = new QuotationData(
+            _txtCustomer.Text.Trim(),
+            _txtCustomerAddress.Text.Trim(),
+            _txtPhone.Text.Trim(),
+            _txtSupplyPlace.Text.Trim(),
+            _txtQuotationNo.Text.Trim(),
+            _quoteDate.Value.Date,
+            _validityDate.Value.Date,
+            _gstPercent.Value);
+
+        var items = _itemsGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => !r.IsNewRow)
+            .Select((r, index) => new QuoteItemData(
+                index + 1,
+                r.Cells["Item"].Value?.ToString() ?? string.Empty,
+                r.Cells["W"].Value?.ToString() ?? string.Empty,
+                r.Cells["H"].Value?.ToString() ?? string.Empty,
+                r.Cells["Qty"].Value?.ToString() ?? string.Empty,
+                r.Cells["Soft"].Value?.ToString() ?? string.Empty,
+                r.Cells["Rate"].Value?.ToString() ?? string.Empty))
+            .ToList();
+
+        _dataStore.SaveState(new AppState(owner, quotation, items));
+    }
+
+    private void UploadLogo()
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp|All files|*.*",
+            Title = "Select owner logo"
+        };
+
+        if (dialog.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
+
+        var extension = Path.GetExtension(dialog.FileName);
+        var savedPath = Path.Combine(_dataDirectory, $"owner-logo{extension}");
+
+        foreach (var file in Directory.GetFiles(_dataDirectory, "owner-logo.*"))
+        {
+            File.Delete(file);
+        }
+
+        File.Copy(dialog.FileName, savedPath, true);
+        _logoPath = savedPath;
+        LoadLogoPreview();
+        SaveState();
+    }
+
+    private void LoadLogoPreview()
+    {
+        _logoPreview.Image?.Dispose();
+        _logoPreview.Image = null;
+
+        if (string.IsNullOrWhiteSpace(_logoPath) || !File.Exists(_logoPath))
+        {
+            return;
+        }
+
+        using var stream = new FileStream(_logoPath, FileMode.Open, FileAccess.Read);
+        using var source = Image.FromStream(stream);
+        _logoPreview.Image = new Bitmap(source);
+    }
+
+    private void RefreshMaterialSuggestions()
+    {
+        var savedSuggestions = _dataStore.LoadMaterialSuggestions();
+
+        var currentItems = _itemsGrid.Rows
+            .Cast<DataGridViewRow>()
+            .Where(r => !r.IsNewRow)
+            .Select(r => r.Cells["Item"].Value?.ToString()?.Trim() ?? string.Empty)
+            .Where(name => !string.IsNullOrWhiteSpace(name));
+
+        _materialSuggestions = savedSuggestions
+            .Concat(currentItems)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private void OnItemsGridEditingControlShowing(object? sender, DataGridViewEditingControlShowingEventArgs e)
+    {
+        if (_itemsGrid.CurrentCell?.OwningColumn?.Name != "Item" || e.Control is not TextBox textBox)
+        {
+            return;
+        }
+
+        var source = new AutoCompleteStringCollection();
+        source.AddRange(_materialSuggestions.ToArray());
+        textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+        textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+        textBox.AutoCompleteCustomSource = source;
     }
 
     private void AddDefaultRow()
@@ -404,7 +624,7 @@ public class MainForm : Form
         ws.Range("A6:F6").Merge().Value = $"Phone: {_txtCompanyPhone.Text}";
         ws.Range("A7:F7").Merge().Value = $"Email: {_txtCompanyEmail.Text}";
 
-        TryInsertCompanyLogo(ws);
+        TryInsertCompanyLogo(ws, ResolveLogoPath());
 
         ws.Range("A9:C9").Merge().Value = "Quotation No:";
         ws.Range("D9:D9").Value = _txtQuotationNo.Text;
@@ -510,17 +730,9 @@ public class MainForm : Form
         MessageBox.Show("Excel exported successfully.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    private static void TryInsertCompanyLogo(IXLWorksheet worksheet)
+    private static void TryInsertCompanyLogo(IXLWorksheet worksheet, string? logoPath)
     {
-        var logoCandidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "logo.png"),
-            Path.Combine(AppContext.BaseDirectory, "rr-logo.png"),
-            Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
-        };
-
-        var logoPath = logoCandidates.FirstOrDefault(File.Exists);
-        if (logoPath is null)
+        if (string.IsNullOrWhiteSpace(logoPath) || !File.Exists(logoPath))
         {
             return;
         }
@@ -542,7 +754,7 @@ public class MainForm : Form
             return;
         }
 
-        var logoBytes = LoadLogoBytes();
+        var logoBytes = LoadLogoBytes(ResolveLogoPath());
 
         var itemRows = _itemsGrid.Rows
             .Cast<DataGridViewRow>()
@@ -701,8 +913,13 @@ public class MainForm : Form
         MessageBox.Show("PDF exported successfully.", "Export", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
-    private static byte[]? LoadLogoBytes()
+    private string? ResolveLogoPath()
     {
+        if (!string.IsNullOrWhiteSpace(_logoPath) && File.Exists(_logoPath))
+        {
+            return _logoPath;
+        }
+
         var logoCandidates = new[]
         {
             Path.Combine(AppContext.BaseDirectory, "logo.png"),
@@ -710,8 +927,14 @@ public class MainForm : Form
             Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
         };
 
-        var logoPath = logoCandidates.FirstOrDefault(File.Exists);
-        return logoPath is null ? null : File.ReadAllBytes(logoPath);
+        return logoCandidates.FirstOrDefault(File.Exists);
+    }
+
+    private static byte[]? LoadLogoBytes(string? logoPath)
+    {
+        return string.IsNullOrWhiteSpace(logoPath) || !File.Exists(logoPath)
+            ? null
+            : File.ReadAllBytes(logoPath);
     }
 
     private static decimal ToDecimal(object? value)
