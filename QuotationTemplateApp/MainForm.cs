@@ -39,6 +39,12 @@ public class MainForm : Form
     private readonly Button _btnSaveData = new() { Text = "Save Data" };
     private readonly Button _btnExportExcel = new() { Text = "Export Excel" };
     private readonly Button _btnExportPdf = new() { Text = "Export PDF" };
+    private readonly Button _btnOwnerDetails = new() { Text = "Owner Details" };
+
+    private readonly Label _lblOwnerCompany = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
+    private readonly Label _lblOwnerGstin = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
+    private readonly Label _lblOwnerPhone = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
+    private readonly Label _lblOwnerEmail = new() { AutoEllipsis = true, Dock = DockStyle.Fill };
 
     private readonly PictureBox _logoPreview = new() { SizeMode = PictureBoxSizeMode.Zoom, Dock = DockStyle.Fill };
     private readonly Button _btnUploadLogo = new() { Text = "Upload Logo" };
@@ -78,15 +84,15 @@ public class MainForm : Form
             Padding = new Padding(10)
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 430));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 300));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 160));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
 
-        var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3 };
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
+        var topPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(0, 0, 0, 6) };
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
         topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
-        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 175));
+        topPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
 
         topPanel.Controls.Add(BuildOwnerAndCustomerPanel(), 0, 0);
         topPanel.Controls.Add(BuildQuotationInfoPanel(), 0, 1);
@@ -104,6 +110,10 @@ public class MainForm : Form
             Padding = new Padding(0, 10, 0, 0)
         };
 
+        totals.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        totals.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        totals.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
         totals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
         totals.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
         totals.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
@@ -118,6 +128,8 @@ public class MainForm : Form
         AddField(totals, "Total Amount (in words)", _txtAmountWords, 0, 2, 6);
 
         _txtGrandTotal.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+        _txtAmountWords.MinimumSize = new Size(0, 60);
+        _txtAmountWords.Dock = DockStyle.Fill;
 
         var actions = new FlowLayoutPanel
         {
@@ -127,7 +139,7 @@ public class MainForm : Form
             Padding = new Padding(0, 5, 0, 0)
         };
 
-        actions.Controls.AddRange(new Control[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf });
+        actions.Controls.AddRange(new Control[] { _btnOwnerDetails, _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf });
 
         root.Controls.Add(topPanel, 0, 0);
         root.Controls.Add(gridHost, 0, 1);
@@ -139,42 +151,40 @@ public class MainForm : Form
 
     private Control BuildOwnerAndCustomerPanel()
     {
-        _txtCompanyAddress.Multiline = true;
-        _txtCompanyAddress.ScrollBars = ScrollBars.Vertical;
-        _txtCompanyPhone.Font = new Font("Segoe UI", 11, FontStyle.Bold);
-        _txtCompanyPhone.MinimumSize = new Size(0, 36);
-
-        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 8) };
+        var panel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75));
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 82));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 18));
 
-        var owner = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 5 };
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
-        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-
-        owner.Controls.Add(new Label
+        var owner = new TableLayoutPanel
         {
-            Text = "Quotation Owner Configuration",
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 6,
+            Padding = new Padding(8),
+            BackColor = Color.WhiteSmoke
+        };
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        owner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        owner.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        owner.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var title = new Label
+        {
+            Text = "Owner Configuration",
             Dock = DockStyle.Fill,
             Font = new Font("Segoe UI", 10, FontStyle.Bold),
             TextAlign = ContentAlignment.MiddleLeft
-        }, 0, 0);
-        owner.SetColumnSpan(owner.GetControlFromPosition(0, 0), 4);
-
-        AddField(owner, "Company", _txtCompany, 0, 1);
-        AddField(owner, "GSTIN", _txtGstin, 2, 1);
-        AddField(owner, "Address", _txtCompanyAddress, 0, 2, 4);
-        AddField(owner, "Phone Number", _txtCompanyPhone, 0, 3, 4);
-        AddField(owner, "Email", _txtCompanyEmail, 0, 4, 4);
+        };
+        owner.Controls.Add(title, 0, 0);
+        owner.SetColumnSpan(title, 2);
+        AddSummaryField(owner, "Company", _lblOwnerCompany, 1);
+        AddSummaryField(owner, "GSTIN", _lblOwnerGstin, 2);
+        AddSummaryField(owner, "Phone", _lblOwnerPhone, 3);
+        AddSummaryField(owner, "Email", _lblOwnerEmail, 4);
 
         var logoPanel = new TableLayoutPanel
         {
@@ -198,9 +208,23 @@ public class MainForm : Form
 
         panel.Controls.Add(owner, 0, 0);
         panel.Controls.Add(logoPanel, 1, 0);
-        panel.SetRowSpan(logoPanel, 2);
 
         return panel;
+    }
+
+    private static void AddSummaryField(TableLayoutPanel panel, string label, Label value, int row)
+    {
+        panel.Controls.Add(new Label
+        {
+            Text = label,
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        }, 0, row);
+
+        value.TextAlign = ContentAlignment.MiddleLeft;
+        value.Font = new Font("Segoe UI", 9);
+        panel.Controls.Add(value, 1, row);
     }
 
     private Control BuildQuotationInfoPanel()
@@ -231,7 +255,7 @@ public class MainForm : Form
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
         panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
 
         panel.Controls.Add(new Label
@@ -254,6 +278,11 @@ public class MainForm : Form
     private void ConfigureButtons()
     {
         var buttons = new[] { _btnAddRow, _btnDeleteRow, _btnRecalculate, _btnSaveData, _btnExportExcel, _btnExportPdf };
+        _btnOwnerDetails.Width = 180;
+        _btnOwnerDetails.Height = 38;
+        _btnOwnerDetails.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+        _btnOwnerDetails.Margin = new Padding(0, 0, 10, 0);
+
         foreach (var button in buttons)
         {
             button.Width = 160;
@@ -320,6 +349,7 @@ public class MainForm : Form
             MessageBox.Show("Data saved successfully.", "Save", MessageBoxButtons.OK, MessageBoxIcon.Information);
         };
         _btnUploadLogo.Click += (_, _) => UploadLogo();
+        _btnOwnerDetails.Click += (_, _) => ShowOwnerDetailsDialog();
         _btnExportExcel.Click += (_, _) => ExportExcel();
         _btnExportPdf.Click += (_, _) => ExportPdf();
         _gstPercent.ValueChanged += (_, _) =>
@@ -394,6 +424,7 @@ public class MainForm : Form
         }
 
         RefreshMaterialSuggestions();
+        RefreshOwnerSummary();
 
         _isLoadingData = false;
     }
@@ -451,6 +482,41 @@ public class MainForm : Form
             .ToList();
 
         _dataStore.SaveState(new AppState(owner, quotation, items));
+        RefreshOwnerSummary();
+    }
+
+    private void RefreshOwnerSummary()
+    {
+        _lblOwnerCompany.Text = _txtCompany.Text;
+        _lblOwnerGstin.Text = _txtGstin.Text;
+        _lblOwnerPhone.Text = _txtCompanyPhone.Text;
+        _lblOwnerEmail.Text = _txtCompanyEmail.Text;
+    }
+
+    private void ShowOwnerDetailsDialog()
+    {
+        using var dialog = new OwnerDetailsForm(new OwnerData(
+            _txtCompany.Text,
+            _txtGstin.Text,
+            _txtCompanyAddress.Text,
+            _txtCompanyPhone.Text,
+            _txtCompanyEmail.Text,
+            _logoPath));
+
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var owner = dialog.OwnerDetails;
+        _txtCompany.Text = owner.Company;
+        _txtGstin.Text = owner.Gstin;
+        _txtCompanyAddress.Text = owner.Address;
+        _txtCompanyPhone.Text = owner.Phone;
+        _txtCompanyEmail.Text = owner.Email;
+        _logoPath = owner.LogoPath;
+        LoadLogoPreview();
+        SaveState();
     }
 
     private void UploadLogo()
