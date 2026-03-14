@@ -273,7 +273,15 @@ public class MainForm : Form
             Font = new Font("Segoe UI", 9, FontStyle.Bold)
         };
 
-        editor.Dock = DockStyle.Fill;
+        if (editor is TextBox textBox && !textBox.Multiline)
+        {
+            editor.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            textBox.Margin = new Padding(3, 6, 3, 6);
+        }
+        else
+        {
+            editor.Dock = DockStyle.Fill;
+        }
 
         panel.Controls.Add(caption, column, row);
         panel.Controls.Add(editor, column + 1, row);
